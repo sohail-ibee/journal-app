@@ -2,16 +2,19 @@ package com.heysohail.journalApp.controllers;
 
 import com.heysohail.journalApp.entity.JournalEntity;
 import com.heysohail.journalApp.service.JournalService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-//https://chatgpt.com/c/68b338b7-ee20-832a-a1f6-55f2f2f9ebf7
 @RestController
 @RequestMapping("/api/journal")
+@Tag(name = "Journal APIs")
 public class JournalController {
 
     @Autowired
@@ -19,12 +22,26 @@ public class JournalController {
 
     @GetMapping("/all")
     public ResponseEntity<List<JournalEntity>> getAllEntries() {
-        return journalAppService.getAllEntries();
+        try {
+            List<JournalEntity> entries = journalAppService.getAllEntries();
+            return new ResponseEntity<>(entries, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @GetMapping("/userId/{userId}/all")
     public ResponseEntity<List<JournalEntity>> getAllEntriesOfAUser(@PathVariable ObjectId userId) {
-        return journalAppService.getAllEntriesOfAUser(userId);
+        try {
+            List<JournalEntity> allEntriesOfAUser = journalAppService.getAllEntriesOfAUser(userId);
+            return new ResponseEntity<>(allEntriesOfAUser, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
 //    Implement this in Authorization
@@ -34,17 +51,38 @@ public class JournalController {
 //    }
 
     @PostMapping("/create/userId/{userId}")
-    public ResponseEntity<?> createEntry(@RequestBody JournalEntity entry, @PathVariable ObjectId userId) {
-        return journalAppService.createEntry(entry, userId);
+    public ResponseEntity<ObjectId> createEntry(@RequestBody JournalEntity entry, @PathVariable ObjectId userId) {
+        try {
+            ObjectId objectId = journalAppService.createEntry(entry, userId);
+            return new ResponseEntity<>(objectId, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PutMapping("/edit/userId/{userId}/journalId/{journalId}")
     public ResponseEntity<JournalEntity> editEntry(@PathVariable ObjectId userId, @PathVariable ObjectId journalId, @RequestBody JournalEntity entry) {
-        return journalAppService.editEntry(userId, journalId, entry);
+        try {
+            JournalEntity journalEntity = journalAppService.editEntry(userId, journalId, entry);
+            return new ResponseEntity<>(journalEntity, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @DeleteMapping("/delete/journalId/{journalId}/userId/{userId}")
-    public ResponseEntity<?> deleteEntry(@PathVariable ObjectId journalId, @PathVariable ObjectId userId) {
-        return journalAppService.deleteEntry(journalId, userId);
+    public ResponseEntity<Void> deleteEntry(@PathVariable ObjectId journalId, @PathVariable ObjectId userId) {
+        try {
+            journalAppService.deleteEntry(journalId, userId);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }

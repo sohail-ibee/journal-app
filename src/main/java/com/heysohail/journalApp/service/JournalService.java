@@ -6,14 +6,11 @@ import com.heysohail.journalApp.repository.JournalRepository;
 import com.heysohail.journalApp.repository.UserRepository;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class JournalService {
@@ -24,28 +21,14 @@ public class JournalService {
     @Autowired
     private UserRepository userRepository;
 
-    public ResponseEntity<List<JournalEntity>> getAllEntries() {
-        try {
-            List<JournalEntity> list = journalRepo.findAll();
-
-            return new ResponseEntity<>(list, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public List<JournalEntity> getAllEntries() {
+        return journalRepo.findAll();
     }
 
-    public ResponseEntity<List<JournalEntity>> getAllEntriesOfAUser(ObjectId userId) {
-        try {
-            Optional<UserEntity> user = userRepository.findById(userId);
+    public List<JournalEntity> getAllEntriesOfAUser(ObjectId userId) {
+        UserEntity user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User Id is not valid."));
 
-            if (user.isPresent()) {
-                return new ResponseEntity<>(user.get().getJournalEntities(), HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            }
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return user.getJournalEntities();
     }
 
 //    public ResponseEntity<JournalEntity> getEntityById(ObjectId id) {
@@ -63,59 +46,33 @@ public class JournalService {
 //    }
 
     @Transactional
-    public ResponseEntity<?> createEntry(JournalEntity entry, ObjectId userId) {
-        try {
-            Optional<UserEntity> user = userRepository.findById(userId);
+    public ObjectId createEntry(JournalEntity entry, ObjectId userId) {
+        UserEntity user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User Id is not valid."));
 
-            if (user.isPresent()) {
-                entry.setDate(LocalDateTime.now());
-                JournalEntity savedEntry = journalRepo.save(entry);
+        entry.setDate(LocalDateTime.now());
+        JournalEntity savedEntry = journalRepo.save(entry);
 
-                user.get().getJournalEntities().add(entry);
-                user.get().setEmail(null);
-                userRepository.save(user.get());
+        user.getJournalEntities().add(entry);
+        userRepository.save(user);
 
-                return new ResponseEntity<>(savedEntry.getId(), HttpStatus.CREATED);
-            } else {
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            }
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return savedEntry.getId();
     }
 
-    public ResponseEntity<JournalEntity> editEntry(ObjectId id, ObjectId journalId,JournalEntity entry) {
-        try {
-            JournalEntity oldEntry = journalRepo.findById(id).orElse(null);
+    public JournalEntity editEntry(ObjectId id, ObjectId journalId, JournalEntity entry) {
+        JournalEntity oldEntry = journalRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("User Id is not valid."));
 
-            if (oldEntry != null) {
-                oldEntry.setTitle(entry.getTitle() != null && !entry.getTitle().isEmpty() ? entry.getTitle() : oldEntry.getTitle());
-                oldEntry.setContent(entry.getContent() != null && !entry.getContent().isEmpty() ? entry.getContent() : oldEntry.getContent());
-                journalRepo.save(oldEntry);
-                return new ResponseEntity<>(oldEntry, HttpStatus.CREATED);
-            } else {
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-            }
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        oldEntry.setTitle(!entry.getTitle().isEmpty() ? entry.getTitle() : oldEntry.getTitle());
+        oldEntry.setContent(entry.getContent() != null && !entry.getContent().isEmpty() ? entry.getContent() : oldEntry.getContent());
+        journalRepo.save(oldEntry);
+        return oldEntry;
     }
 
     @Transactional
-    public ResponseEntity<?> deleteEntry(ObjectId journalId, ObjectId userId) {
-        try {
-            UserEntity user = userRepository.findById(userId).orElse(null);
+    public void deleteEntry(ObjectId journalId, ObjectId userId) {
+        UserEntity user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User Id is not valid."));
 
-            if (user!=null) {
-                user.getJournalEntities().removeIf(x -> x.getId().equals(journalId));
-                userRepository.save(user);
-                journalRepo.deleteById(journalId);
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        user.getJournalEntities().removeIf(x -> x.getId().equals(journalId));
+        userRepository.save(user);
+        journalRepo.deleteById(journalId);
     }
 }

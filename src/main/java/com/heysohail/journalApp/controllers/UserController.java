@@ -3,6 +3,7 @@ package com.heysohail.journalApp.controllers;
 
 import com.heysohail.journalApp.entity.UserEntity;
 import com.heysohail.journalApp.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/user")
+@Tag(name = "User APIs")
 public class UserController {
 
     @Autowired
